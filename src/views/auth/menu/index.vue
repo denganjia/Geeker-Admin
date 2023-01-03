@@ -6,8 +6,7 @@
 			type="success"
 			:closable="false"
 		/>
-		<br />
-		<el-button type="primary" @click="handleToLogin">去登录其他账号</el-button>
+		<el-button class="mt20" type="primary" :icon="Promotion" @click="handleToLogin">登录其他账号</el-button>
 	</div>
 </template>
 
@@ -15,6 +14,7 @@
 import { useRouter } from "vue-router";
 import { LOGIN_URL } from "@/config/config";
 import { GlobalStore } from "@/stores";
+import { Promotion } from "@element-plus/icons-vue";
 
 const router = useRouter();
 const globalStore = GlobalStore();

@@ -101,7 +101,7 @@ const dataCallback = (data: any) => {
 // 如果你想在请求之前对当前请求参数做一些操作，可以自定义如下函数：params 为当前所有的请求参数（包括分页），最后返回请求列表接口
 // 默认不做操作就直接在 ProTable 组件上绑定	:requestApi="getUserList"
 const getTableList = (params: any) => {
-	let newParams = { ...params };
+	let newParams = JSON.parse(JSON.stringify(params));
 	newParams.username && (newParams.username = "custom-" + newParams.username);
 	return getUserList(newParams);
 };
@@ -144,7 +144,7 @@ const columns: ColumnProps[] = [
 		prop: "gender",
 		label: "性别",
 		enum: getUserGender,
-		search: { el: "select" },
+		search: { el: "select", props: { filterable: true } },
 		fieldNames: { label: "genderLabel", value: "genderValue" }
 	},
 	// 多级 prop
@@ -187,7 +187,7 @@ const columns: ColumnProps[] = [
 		search: {
 			el: "date-picker",
 			span: 2,
-			props: { type: "datetimerange" },
+			props: { type: "datetimerange", valueFormat: "YYYY-MM-DD HH:mm:ss" },
 			defaultValue: ["2022-11-12 11:35:00", "2022-12-12 11:35:00"]
 		}
 	},

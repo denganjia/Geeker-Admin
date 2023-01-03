@@ -23,6 +23,13 @@ export interface ReqPage {
 	pageSize: number;
 }
 
+// * 文件上传模块
+export namespace Upload {
+	export interface ResFileUrl {
+		fileUrl: string;
+	}
+}
+
 // * 登录模块
 export namespace Login {
 	export interface ReqLoginForm {
@@ -39,7 +46,7 @@ export namespace Login {
 
 // * 用户管理模块
 export namespace User {
-	export interface ReqGetUserParams extends ReqPage {
+	export interface ReqUserParams extends ReqPage {
 		username: string;
 		gender: number;
 		idCard: string;
@@ -78,11 +85,9 @@ export namespace User {
 		name: string;
 		children?: ResDepartment[];
 	}
-}
-
-// * 文件上传模块
-export namespace Upload {
-	export interface ResFileUrl {
-		fileUrl: string;
+	export interface ResRole {
+		id: string;
+		name: string;
+		children?: ResDepartment[];
 	}
 }
