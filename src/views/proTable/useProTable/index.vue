@@ -88,10 +88,11 @@ const initParam = reactive({
 	type: 1
 });
 
-// dataCallback 是对于返回的表格数据做处理，如果你后台返回的数据不是 datalist && total && pageNum && pageSize 这些字段，那么你可以在这里进行处理成这些字段
+// dataCallback 是对于返回的表格数据做处理，如果你后台返回的数据不是 list && total && pageNum && pageSize 这些字段，那么你可以在这里进行处理成这些字段
+// 或者直接去 hooks/useTable.ts 文件中把字段改为你后端对应的就行
 const dataCallback = (data: any) => {
 	return {
-		datalist: data.datalist,
+		list: data.list,
 		total: data.total,
 		pageNum: data.pageNum,
 		pageSize: data.pageSize
@@ -143,7 +144,12 @@ const columns: ColumnProps[] = [
 	{
 		prop: "gender",
 		label: "性别",
+		// 直接放字典数据
+		// enum: genderType,
+		// 字典请求不带参数
 		enum: getUserGender,
+		// 字典请求携带参数
+		// enum: () => getUserGender({ id: 1 }),
 		search: { el: "select", props: { filterable: true } },
 		fieldNames: { label: "genderLabel", value: "genderValue" }
 	},
@@ -156,11 +162,8 @@ const columns: ColumnProps[] = [
 		prop: "status",
 		label: "用户状态",
 		enum: getUserStatus,
+		search: { el: "tree-select", props: { filterable: true } },
 		fieldNames: { label: "userLabel", value: "userStatus" },
-		search: {
-			el: "tree-select",
-			props: { props: { label: "userLabel" }, nodeKey: "userStatus" }
-		},
 		render: (scope: { row: User.ResUserList }) => {
 			return (
 				<>
@@ -183,7 +186,7 @@ const columns: ColumnProps[] = [
 		prop: "createTime",
 		label: "创建时间",
 		headerRender,
-		width: 200,
+		width: 180,
 		search: {
 			el: "date-picker",
 			span: 2,
