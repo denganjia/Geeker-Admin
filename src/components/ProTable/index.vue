@@ -3,12 +3,12 @@
 <template>
   <!-- 查询表单 card -->
   <SearchForm
+    v-show="isShowSearch"
     :search="search"
     :reset="reset"
-    :search-param="searchParam"
     :columns="searchColumns"
+    :search-param="searchParam"
     :search-col="searchCol"
-    v-show="isShowSearch"
   />
 
   <!-- 表格内容 card -->
@@ -16,14 +16,14 @@
     <!-- 表格头部 操作按钮 -->
     <div class="table-header">
       <div class="header-button-lf">
-        <slot name="tableHeader" :selectedListIds="selectedListIds" :selectedList="selectedList" :isSelected="isSelected" />
+        <slot name="tableHeader" :selected-list-ids="selectedListIds" :selected-list="selectedList" :is-selected="isSelected" />
       </div>
-      <div class="header-button-ri" v-if="toolButton">
+      <div v-if="toolButton" class="header-button-ri">
         <slot name="toolButton">
           <el-button :icon="Refresh" circle @click="getTableList" />
-          <el-button :icon="Printer" circle v-if="columns.length" @click="handlePrint" />
-          <el-button :icon="Operation" circle v-if="columns.length" @click="openColSetting" />
-          <el-button :icon="Search" circle v-if="searchColumns.length" @click="isShowSearch = !isShowSearch" />
+          <el-button v-if="columns.length" :icon="Printer" circle @click="print" />
+          <el-button v-if="columns.length" :icon="Operation" circle @click="openColSetting" />
+          <el-button v-if="searchColumns.length" :icon="Search" circle @click="isShowSearch = !isShowSearch" />
         </slot>
       </div>
     </div>
@@ -31,7 +31,7 @@
     <el-table
       ref="tableRef"
       v-bind="$attrs"
-      :data="tableData"
+      :data="data ?? tableData"
       :border="border"
       :row-key="rowKey"
       @selection-change="selectionChange"
@@ -39,20 +39,19 @@
       <!-- 默认插槽 -->
       <slot></slot>
       <template v-for="item in tableColumns" :key="item">
-        <!-- selection || index -->
+        <!-- selection || index || expand -->
         <el-table-column
+          v-if="item.type && ['selection', 'index', 'expand'].includes(item.type)"
           v-bind="item"
           :align="item.align ?? 'center'"
           :reserve-selection="item.type == 'selection'"
-          v-if="item.type == 'selection' || item.type == 'index'"
         >
+          <template v-if="item.type == 'expand'" #default="scope">
+            <component :is="item.render" v-bind="scope" v-if="item.render"> </component>
+            <slot v-else :name="item.type" v-bind="scope"></slot>
+          </template>
         </el-table-column>
-        <!-- expand 支持 tsx 语法 && 作用域插槽 (tsx > slot) -->
-        <el-table-column v-bind="item" :align="item.align ?? 'center'" v-if="item.type == 'expand'" v-slot="scope">
-          <component :is="item.render" v-bind="scope" v-if="item.render"> </component>
-          <slot :name="item.type" v-bind="scope" v-else></slot>
-        </el-table-column>
-        <!-- other 循环递归 -->
+        <!-- other -->
         <TableColumn v-if="!item.type && item.prop && item.isShow" :column="item">
           <template v-for="slot in Object.keys($slots)" #[slot]="scope">
             <slot :name="slot" v-bind="scope"></slot>
@@ -63,7 +62,7 @@
       <template #append>
         <slot name="append"> </slot>
       </template>
-      <!-- 表格无数据情况 -->
+      <!-- 无数据 -->
       <template #empty>
         <div class="table-empty">
           <slot name="empty">
@@ -89,11 +88,11 @@
 
 <script setup lang="ts" name="ProTable">
 import { ref, watch, computed, provide, onMounted } from "vue";
+import { ElTable } from "element-plus";
 import { useTable } from "@/hooks/useTable";
 import { useSelection } from "@/hooks/useSelection";
 import { BreakPoint } from "@/components/Grid/interface";
 import { ColumnProps } from "@/components/ProTable/interface";
-import { ElTable, TableProps } from "element-plus";
 import { Refresh, Printer, Operation, Search } from "@element-plus/icons-vue";
 import { filterEnum, formatValue, handleProp, handleRowAccordingToProp } from "@/utils";
 import SearchForm from "@/components/SearchForm/index.vue";
@@ -102,9 +101,10 @@ import ColSetting from "./components/ColSetting.vue";
 import TableColumn from "./components/TableColumn.vue";
 import printJS from "print-js";
 
-interface ProTableProps extends Partial<Omit<TableProps<any>, "data">> {
-  columns: ColumnProps[]; // 列配置项
-  requestApi: (params: any) => Promise<any> | any; // 请求表格数据的 api ==> 非必传
+export interface ProTableProps {
+  columns: ColumnProps[]; // 列配置项  ==> 必传
+  data?: any[]; // 静态 table data 数据，若存在则不会使用 requestApi 返回的 data ==> 非必传
+  requestApi?: (params: any) => Promise<any>; // 请求表格数据的 api ==> 非必传
   requestAuto?: boolean; // 是否自动执行请求 api ==> 非必传（默认为true）
   requestError?: (params: any) => void; // 表格 api 请求错误监听 ==> 非必传
   dataCallback?: (data: any) => any; // 返回数据的回调函数，可以对数据进行处理 ==> 非必传
@@ -119,8 +119,8 @@ interface ProTableProps extends Partial<Omit<TableProps<any>, "data">> {
 
 // 接受父组件参数，配置默认值
 const props = withDefaults(defineProps<ProTableProps>(), {
-  requestAuto: true,
   columns: () => [],
+  requestAuto: true,
   pagination: true,
   initParam: {},
   border: true,
@@ -186,7 +186,7 @@ const flatColumns = ref<ColumnProps[]>();
 flatColumns.value = flatColumnsFunc(tableColumns.value);
 
 // 过滤需要搜索的配置项
-const searchColumns = flatColumns.value.filter(item => item.search?.el);
+const searchColumns = flatColumns.value.filter(item => item.search?.el || item.search?.render);
 
 // 设置搜索表单排序默认值 && 设置搜索表单项的默认值
 searchColumns.forEach((column, index) => {
@@ -207,10 +207,11 @@ const colSetting = tableColumns.value!.filter(
 );
 const openColSetting = () => colRef.value.openColSetting();
 
-// 🙅‍♀️ 不需要打印可以把以下方法删除，打印功能目前存在很多 bug（目前数据处理比较复杂 209-246 行）
+// 🙅‍♀️ 不需要打印可以把以下方法删除，打印功能目前存在很多 bug
 // 处理打印数据（把后台返回的值根据 enum 做转换）
 const printData = computed(() => {
-  const printDataList = JSON.parse(JSON.stringify(selectedList.value.length ? selectedList.value : tableData.value));
+  const handleData = props.data ?? tableData.value;
+  const printDataList = JSON.parse(JSON.stringify(selectedList.value.length ? selectedList.value : handleData));
   // 找出需要转换数据的列（有 enum || 多级 prop && 需要根据 enum 格式化）
   const needTransformCol = flatColumns.value!.filter(
     item => (item.enum || (item.prop && item.prop.split(".").length > 1)) && item.isFilterEnum
@@ -230,7 +231,7 @@ const printData = computed(() => {
 });
 
 // 打印表格数据（💥 多级表头数据打印时，只能扁平化成一维数组，printJs 不支持多级表头打印）
-const handlePrint = () => {
+const print = () => {
   const header = `<div style="text-align: center"><h2>${props.title}</h2></div>`;
   const gridHeaderStyle = "border: 1px solid #ebeef5;height: 45px;color: #232425;text-align: center;background-color: #fafafa;";
   const gridStyle = "border: 1px solid #ebeef5;height: 40px;color: #494b4e;text-align: center";
@@ -250,10 +251,14 @@ const handlePrint = () => {
 defineExpose({
   element: tableRef,
   tableData,
-  searchParam,
   pageable,
+  searchParam,
+  searchInitParam,
   getTableList,
+  search,
   reset,
+  handleSizeChange,
+  handleCurrentChange,
   clearSelection,
   enumMap,
   isSelected,

@@ -50,22 +50,22 @@ export const exportUserInfo = (params: User.ReqUserParams) => {
   return http.download(PORT1 + `/user/export`, params);
 };
 
-// 获取用户状态
+// 获取用户状态字典
 export const getUserStatus = () => {
-  return http.get<User.ResStatus>(PORT1 + `/user/status`);
+  return http.get<User.ResStatus[]>(PORT1 + `/user/status`);
 };
 
 // 获取用户性别字典
 export const getUserGender = () => {
-  return http.get<User.ResGender>(PORT1 + `/user/gender`);
+  return http.get<User.ResGender[]>(PORT1 + `/user/gender`);
 };
 
 // 获取用户部门列表
 export const getUserDepartment = () => {
-  return http.get<User.ResDepartment>(PORT1 + `/user/department`);
+  return http.get<User.ResDepartment[]>(PORT1 + `/user/department`);
 };
 
 // 获取用户角色字典
 export const getUserRole = () => {
-  return http.get<User.ResRole>(PORT1 + `/user/role`);
+  return http.get<User.ResRole[]>(PORT1 + `/user/role`);
 };

@@ -15,9 +15,9 @@ export const useTheme = () => {
 
   // 切换暗黑模式 ==> 并带修改主题颜色、侧边栏颜色
   const switchDark = () => {
-    const body = document.documentElement as HTMLElement;
-    if (isDark.value) body.setAttribute("class", "dark");
-    else body.setAttribute("class", "");
+    const html = document.documentElement as HTMLElement;
+    if (isDark.value) html.setAttribute("class", "dark");
+    else html.setAttribute("class", "");
     changePrimary(primary.value);
     setAsideTheme();
   };
@@ -58,10 +58,10 @@ export const useTheme = () => {
   const setAsideTheme = () => {
     // 默认所有侧边栏为 light 模式
     let type: AsideThemeType = "light";
-    // transverse 布局下菜单栏为 inverted 模式
-    if (layout.value == "transverse") type = "inverted";
-    // 侧边栏反转色目前只支持在 vertical 布局模式下生效
-    if (layout.value == "vertical" && asideInverted.value) type = "inverted";
+    // 侧边栏反转色目前只支持在 vertical、classic 布局模式下生效 || transverse 布局下菜单栏默认为 inverted 模式
+    if ((["vertical", "classic"].includes(layout.value) && asideInverted.value) || layout.value == "transverse") {
+      type = "inverted";
+    }
     // 侧边栏 dark 模式
     if (isDark.value) type = "dark";
     const theme = asideTheme[type!];
